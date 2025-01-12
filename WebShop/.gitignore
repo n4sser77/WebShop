@@ -1,0 +1,69 @@
+﻿# .NET specific
+project.lock.json
+project.fragment.lock.json
+artifacts/
+**/bin/
+**/obj/
+# Comment out if you have packags your own .dll files in a lib directory
+#**/lib/*
+# VS Code directories
+.vscode/
+.history/
+# User-specific files
+*.rsuser
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Mono auto generated files
+mono_crash.*
+
+# Windows image file caches
+Thumbs.db
+ehthumbs.db
+
+# Folder config file
+Desktop.ini
+$RECYCLE.BIN/
+
+# SQL Server files
+*.mdf
+*.ldf
+*.ndf
+
+# Application Insights log files
+*.ai.log
+
+# Azure Stream Analytics job files
+*.asa.sql
+
+# User-specific files
+*.rsuser
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Node.js directories
+node_modules/
+
+# NuGet Packages
+*.nupkg
+# The packages folder can be ignored because of Package Restore
+**/packages/*
+# except build/, which is used as an MSBuild target.
+!**/packages/build/
+# Uncomment if necessary however generally it will be regenerated when needed
+#!**/packages/repositories.config
+
+# .NET Core
+project.lock.json
+project.fragment.lock.json
+artifacts/
+**/bin/
+**/obj/
+!*/.env
+
+# .env file
+.env
