@@ -13,11 +13,11 @@ namespace WebShop.Models
         [Required]
         public decimal Price { get; set; }
         [Required]
-        public int Stock { get; set; }
+
         public bool IsDeleted { get; set; }
 
 
-        public virtual int CategoryId { get; set; }
-        public virtual Category Category { get; set; }
+
+        public virtual ICollection<Category> Categories { get; set; } = new List<Category>();
     }
 }

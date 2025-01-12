@@ -44,25 +44,24 @@ namespace WebShop
                     var loggedInText = "Logged in as " + _currentUser.FirstName;
 
                     var window1 = new Window("", 2, 1, new List<string> { welcomeText, loggedInText });
-                    var toolbarWindow = new Window("Admin tools", 42, 1, new List<string> { "Press  D to add a category", "Press L to list categories" });
+                    var toolbarWindow = new Window("Admin tools", 35, 1, new List<string> { "Press  D to add a category", "Press L to list categories" });
+                    var toolbar1Window = new Window("Product tools", 67, 1, new List<string> { "Press  P to add a product", "Press A to list products" });
 
 
                     var k = Console.ReadKey(true);
                     switch (k.Key)
                     {
+                        case ConsoleKey.A:
+                            await DisplayProducts();
+                            break;
+                        case ConsoleKey.P:
+                            await AddProduct();
+                            break;
                         case ConsoleKey.D:
-                            Console.Write("Enter category name: ");
-
-                            await _WebShop.ProductManager.CreateCategory(Console.ReadLine());
-
+                            await AddCategory();
                             break;
                         case ConsoleKey.L:
-                            var categories = await _WebShop.ProductManager.CategoriesToList();
-
-                            foreach (var category in categories)
-                            {
-                                Console.WriteLine(category);
-                            }
+                            await DisplayCategories();
                             break;
                         default:
                             Console.WriteLine("Invaild key pressed");
@@ -79,6 +78,91 @@ namespace WebShop
                     await UserInput();
                     continue;
                 }
+            }
+
+            async Task AddCategory()
+            {
+                Console.Write("Enter category name: ");
+                var name = Console.ReadLine();
+                if (!string.IsNullOrWhiteSpace(name))
+                {
+                    await _WebShop.ProductManager.CreateCategory(name);
+                    return;
+                }
+                Console.WriteLine("Invalid name.");
+            }
+
+            async Task DisplayCategories()
+            {
+                var categories = await _WebShop.ProductManager.CategoriesToList();
+
+                foreach (var category in categories)
+                {
+                    Console.WriteLine(category.Name);
+                }
+            }
+            async Task DisplayProducts()
+            {
+                var products = await _WebShop.ProductManager.ProductsToList();
+
+                foreach (var p in products)
+                {
+                    Console.WriteLine(p.Name);
+                }
+            }
+
+            async Task AddProduct()
+            {
+                Console.Write("Enter product name: ");
+                var name = Console.ReadLine();
+                if (string.IsNullOrEmpty(name))
+                {
+                    Console.WriteLine("Invalid name");
+                    return;
+                }
+
+                Console.Write("Enter product price: ");
+                decimal price;
+
+                bool success = decimal.TryParse(Console.ReadLine(), out price);
+                if (success == false)
+                {
+                    Console.WriteLine("Invalid price");
+                    return;
+                }
+
+                Console.Write("Enter product description: ");
+
+                var description = Console.ReadLine();
+
+                if (string.IsNullOrEmpty(description))
+                {
+                    Console.WriteLine("Invalid description");
+                    return;
+                }
+                var categoryString = Console.ReadLine();
+
+                if (string.IsNullOrEmpty(categoryString))
+                {
+                    Console.WriteLine("Invalid category");
+                    return;
+                }
+
+                var category = await _WebShop.ProductManager.SearchCategory(categoryString);
+                if (category == null)
+                {
+                    return;
+                }
+
+                var product = new Product
+                {
+                    Name = name,
+                    Price = price,
+                    Description = description,
+                    Categories = new List<Category>() { category }
+                };
+
+                await _WebShop.ProductManager.AddProduct(product);
             }
         }
 
@@ -123,13 +207,17 @@ namespace WebShop
             var hashedPassword = GetPasswordHash();
             if (hashedPassword == null) return;
 
-            _currentUser = await _WebShop.UserManager.LogInUser(new LogInModel
+            var user = await _WebShop.UserManager.LogInUser(new LogInModel
             {
                 Email = email,
                 Password = hashedPassword
             });
+            if (user != null)
+            {
+                _currentUser = user;
+                _IsLoggedIn = true;
+            }
 
-            _IsLoggedIn = true;
             // Console.ReadLine();
         }
 
@@ -162,29 +250,52 @@ namespace WebShop
                 FirstName = firstName,
                 LastName = lastName,
                 PhoneNumber = phone,
-                Role = role
+                Role = role,
+                Cart = new Cart()
             });
 
 
             Console.WriteLine("User created");
             Thread.Sleep(1000);
             Console.Clear();
-            _currentUser = await _WebShop.UserManager.LogInUser(new LogInModel { Email = user.Email, Password = user.Password });
-        }
-
-        private string GetEmail()
-        {
-            Console.Write("Enter your email: ");
-            var email = Console.ReadLine();
-            if (!string.IsNullOrWhiteSpace(email) && email.Contains('@'))
+            var userSignUp = await _WebShop.UserManager.LogInUser(new LogInModel { Email = user.Email, Password = user.Password });
+            if (userSignUp != null)
             {
-                return email;
+
+                _currentUser = userSignUp;
             }
-            Console.WriteLine("Invalid email.");
-            return null;
         }
 
-        private string GetPasswordHash()
+        private string? GetEmail()
+        {
+            Console.WriteLine("Type exit to exit ");
+            Console.Write("Enter your email: ");
+            var cursor = Console.GetCursorPosition();
+            while (true)
+            {
+
+
+
+                Console.SetCursorPosition(18, cursor.Top);
+                Console.Write(new String(' ', 35));
+                Console.SetCursorPosition(18, cursor.Top);
+                var email = Console.ReadLine();
+                if (!string.IsNullOrWhiteSpace(email) && email.Contains('@'))
+                {
+                    return email;
+                }
+                if (email.ToLower() == "exit")
+                {
+                    Console.WriteLine("Exiting....             ");
+                    Thread.Sleep(800);
+                    return null;
+                }
+                Console.WriteLine("Invalid email.");
+            }
+
+        }
+
+        private string? GetPasswordHash()
         {
             Console.Write("Enter your password: ");
             var password = Console.ReadLine();
@@ -197,7 +308,7 @@ namespace WebShop
             return null;
         }
 
-        private (string firstName, string lastName) GetName()
+        private (string? firstName, string? lastName) GetName()
         {
             Console.Write("Enter your first name and last name: ");
             var name = Console.ReadLine();
@@ -222,7 +333,7 @@ namespace WebShop
             return null;
         }
 
-        private string GetPhoneNumber()
+        private string? GetPhoneNumber()
         {
             Console.Write("Enter your phone number: ");
             var phone = Console.ReadLine();
@@ -234,7 +345,7 @@ namespace WebShop
             return null;
         }
 
-        private string GetRole()
+        private string? GetRole()
         {
             Console.Write("Enter your role: ");
             var role = Console.ReadLine();

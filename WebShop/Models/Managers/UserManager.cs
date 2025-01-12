@@ -8,13 +8,13 @@ namespace WebShop.Models.Managers
     {
 
 
-        public async Task<User> CreateUser(User user)
+        public async Task<User?> CreateUser(User user)
         {
 
             try
             {
                 using var db = new AppDbContext();
-                user.Cart = new Cart();
+
                 var existningUser = await db.Users.FirstOrDefaultAsync(u => u == user);
                 if (existningUser != null)
                 {
@@ -22,7 +22,6 @@ namespace WebShop.Models.Managers
                     return null;
                 }
                 db.Users.Add(user);
-                db.Carts.Add(user.Cart);
                 await db.SaveChangesAsync();
             }
             catch (Exception e)
@@ -50,9 +49,9 @@ namespace WebShop.Models.Managers
         {
             using var db = new AppDbContext();
             user.Role = "User";
-            db.SaveChangesAsync();
+            await db.SaveChangesAsync();
         }
-        public async Task<User> LogInUser(LogInModel user)
+        public async Task<User?> LogInUser(LogInModel user)
         {
             using var db = new AppDbContext();
             var userFromDb = db.Users.FirstOrDefault(u => u.Email == user.Email);

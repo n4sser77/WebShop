@@ -41,11 +41,14 @@ namespace WebShop.Models
                 LastName = this.LastName,
                 PhoneNumber = this.PhoneNumber,
                 Role = this.Role,
+                Cart = this.Cart,
+                CartId = this.CartId,
                 ShippingAddress = shippingAdress,
                 BillingAddress = billingAdress,
                 PostalCode = postalCode,
                 City = city,
-                Country = country
+                Country = country,
+
             };
         }
 

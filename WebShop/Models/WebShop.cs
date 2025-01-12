@@ -12,6 +12,7 @@ namespace WebShop.Models
     {
         public int Id { get; set; }
         public IWebSHopSettings Settings { get; set; } = settings;
+        public string ShopName { get; set; } = settings.ShopName;
         public ProductManager ProductManager { get; set; } = productManager;
         public UserManager UserManager { get; set; } = userManager;
         public CartManager CartManager { get; set; } = cartManager;
