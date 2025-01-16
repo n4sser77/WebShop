@@ -9,7 +9,7 @@ namespace WebShop.Models.Interfaces
     public interface ICart
     {
         public int Id { get; set; }
-        public ICollection<Product> Products { get; set; }
+        public List<Product> Products { get; set; }
         public double Total { get; set; }
 
     }

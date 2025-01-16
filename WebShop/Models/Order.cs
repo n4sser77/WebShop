@@ -15,7 +15,7 @@ namespace WebShop.Models
         public virtual int CustomerId { get; set; }
         public virtual Customer Customer { get; set; }
 
-        public virtual ICollection<Product> Products { get; set; } = new List<Product>();
+        public virtual List<Product> Products { get; set; } = new List<Product>();
 
     }
 }

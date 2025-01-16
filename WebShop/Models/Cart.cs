@@ -15,7 +15,7 @@ namespace WebShop.Models
         public double Total { get; set; }
         public bool IsCheckedOut { get; set; } = false;
 
-        public virtual ICollection<Product> Products { get; set; } = new List<Product>();
+        public virtual List<Product> Products { get; set; } = new List<Product>();
 
 
 

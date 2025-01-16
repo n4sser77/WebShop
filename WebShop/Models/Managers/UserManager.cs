@@ -21,7 +21,7 @@ namespace WebShop.Models.Managers
                     Console.WriteLine("User already exists");
                     return null;
                 }
-                db.Users.Add(user);
+                await db.Users.AddAsync(user);
                 await db.SaveChangesAsync();
             }
             catch (Exception e)
@@ -42,7 +42,7 @@ namespace WebShop.Models.Managers
         {
             using var db = new AppDbContext();
             user.Role = "Admin";
-            db.Add(user);
+            await db.AddAsync(user);
             await db.SaveChangesAsync();
         }
         public async Task RemoveAdmin(User user)
@@ -54,15 +54,19 @@ namespace WebShop.Models.Managers
         public async Task<User?> LogInUser(LogInModel user)
         {
             using var db = new AppDbContext();
-            var userFromDb = db.Users.FirstOrDefault(u => u.Email == user.Email);
+            var userFromDb = await db.Users.Include(u => u.Cart).FirstOrDefaultAsync(u => u.Email == user.Email);
             if (userFromDb == null)
             {
-                Console.WriteLine("User not found");
+                Console.WriteLine("\nUser not found, press Enter to continue ");
+                Console.ReadLine();
+                Console.Clear();
                 return null;
             }
             if (userFromDb.Password != user.Password)
             {
-                Console.WriteLine("Invalid password");
+                Console.WriteLine("\nInvalid password, press Enter to continue ");
+                Console.ReadLine();
+                Console.Clear();
                 return null;
             }
 

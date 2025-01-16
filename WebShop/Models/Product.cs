@@ -16,8 +16,11 @@ namespace WebShop.Models
 
         public bool IsDeleted { get; set; }
 
+        public bool IsFeatured { get; set; }
 
 
         public virtual ICollection<Category> Categories { get; set; } = new List<Category>();
+        public virtual ICollection<Order>? Orders { get; set; } = new List<Order>();
+        public virtual ICollection<Cart>? Carts { get; set; } = new List<Cart>();
     }
 }

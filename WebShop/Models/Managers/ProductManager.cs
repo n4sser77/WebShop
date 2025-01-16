@@ -7,9 +7,29 @@ namespace WebShop.Models.Managers
     public class ProductManager : IProductManager
     {
 
-        public async Task<Product?> GetProduct(int id)
+        public async Task<List<Product>?> SearchProduct(string searchQuery)
         {
 
+            try
+            {
+                using var db = new AppDbContext();
+                var p = await db.Products.Where(p => p.Name.Contains(searchQuery, StringComparison.OrdinalIgnoreCase)).ToListAsync();
+                if (p != null)
+                {
+                    return p;
+                }
+                return null;
+
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
+                throw;
+            }
+        }
+
+        public async Task<Product?> GetProduct(int id)
+        {
             try
             {
                 using var db = new AppDbContext();
@@ -19,7 +39,6 @@ namespace WebShop.Models.Managers
                     return p;
                 }
                 return null;
-
             }
             catch (Exception e)
             {
@@ -159,6 +178,67 @@ namespace WebShop.Models.Managers
                 Console.WriteLine(e.Message);
                 throw;
             }
+        }
+        public async Task<Product?> AddRndToFeautered()
+        {
+            try
+            {
+                using var db = new AppDbContext();
+                var products = await db.Products.ToListAsync();
+                var featuredProducts = products.Where(p => p.IsFeatured == true).ToList();
+                if (featuredProducts.Count < 3)
+                {
+                    var random = new Random();
+                    var randomProduct = products[random.Next(0, products.Count)];
+                    randomProduct.IsFeatured = true;
+
+                    await db.SaveChangesAsync();
+                    return randomProduct;
+                }
+                return null;
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
+                throw;
+            }
+        }
+        public async Task AddToFeautered(Product product)
+        {
+            if (product == null)
+            {
+                return;
+            }
+            try
+            {
+                using var db = new AppDbContext();
+                var products = await db.Products.ToListAsync();
+                var featuredProducts = products.Where(p => p.IsFeatured == true).ToList();
+                if (featuredProducts.Count < 3)
+                {
+                    product.IsFeatured = true;
+                    await db.SaveChangesAsync();
+                }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
+                throw;
+            }
+        }
+
+
+        public async Task<List<Product>> GetFeaturedProducts()
+        {
+            using var db = new AppDbContext();
+
+            var featuredProducts = await db.Products.Where(p => p.IsFeatured == true).ToListAsync();
+
+            if (featuredProducts.Count > 0)
+            {
+                return featuredProducts;
+            }
+            return new List<Product>();
         }
     }
 }
