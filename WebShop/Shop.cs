@@ -3,10 +3,11 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading.Channels;
 using System.Threading.Tasks;
 using WebShop.Data;
+using WebShop.Managers;
 using WebShop.Models;
-using WebShop.Models.Managers;
 using WindowGUI;
 
 
@@ -39,16 +40,16 @@ namespace WebShop
         {
             if (isInDev)
             {
-                using (var db = new AppDbContext())
-                {
-                    var admin = db.Users.FirstOrDefault(u => u.FirstName == "Anders");
+                using var db = new AppDbContext();
 
-                    if (admin != null)
-                    {
-                        _currentUser = admin;
-                        _IsLoggedIn = true;
-                    }
+                var admin = db.Users.FirstOrDefault(u => u.FirstName == "Anders");
+
+                if (admin != null)
+                {
+                    _currentUser = admin;
+                    _IsLoggedIn = true;
                 }
+
             }
 
             while (true)
@@ -123,7 +124,7 @@ namespace WebShop
                     await DisplayFeatured();
                     await DisplayCart();
 
-                    var toolbarWindow = new Window("Customer tools", 84, 0, ["[S] to search for a product", "[L] to list all products", "[C] to list all categories", "[A] to add a product to cart", "[O] to view cart", "[D] to remove from cart"], ConsoleColor.White, ConsoleColor.Black);
+                    var toolbarWindow = new Window("Customer tools", 84, 0, ["[S] to search for a product", "[L] to list all products", "[C] to list all categories", "[A] to add a product to cart", "[O] to view cart", "[D] to remove from cart", "[H] to view order history"], ConsoleColor.White, ConsoleColor.Black);
 
                     Console.WriteLine("\nPress X to sign out");
                     var k = Console.ReadKey(true);
@@ -134,6 +135,43 @@ namespace WebShop
                             _IsLoggedIn = false;
                             Console.Clear();
                             break;
+                        case ConsoleKey.H:
+                            Console.Clear();
+                            var orders = await _WebShop.OrderManager.OrdersToListAsync(_currentUser.Id);
+
+                            // Print headers for the orders
+                            Console.WriteLine($"{"Order ID",-10}{"Order Date",-30}{"Payment",-15}");
+                            Console.WriteLine(new string('-', 70));
+
+                            foreach (var o in orders)
+                            {
+                                Console.WriteLine($"{o.Id,-10}{o.OrderDate,-30}{o.PaymentMethod,-15}");
+
+
+                                // Print headers for the products
+                                Console.WriteLine(new string('-', 70));
+                                Console.WriteLine($"\t{"Product ID",-10}{"Product Name",-30}{"Price",-15}");
+                                Console.WriteLine("\t" + new string('-', 62));
+
+                                foreach (var p in o.Products)
+                                {
+                                    Console.WriteLine($"\t{p.Id,-10}{p.Name,-30}{p.Price,-15} SEK");
+                                }
+
+                                Console.WriteLine("\nTotal: " + o.Total);
+                                Console.WriteLine(new string('=', 70)); // Separator for each order
+                            }
+
+                            break;
+                        case ConsoleKey.L:
+                            var products = await _WebShop.ProductManager.ProductsToList();
+                            if (products == null) return;
+                            Console.WriteLine($"{"ID",-7}{"Name",-30}{"Price",-7} SEK");
+                            foreach (var p in products)
+                            {
+                                Console.WriteLine($"{p.Id,-7}{p.Name,-30}{p.Price,-7} SEK");
+                            }
+                            break;
                         case ConsoleKey.S:
                             Console.Write("Enter product name: ");
                             await LiveSearchWithCancellationAsync();
@@ -143,43 +181,34 @@ namespace WebShop
                         case ConsoleKey.D:
                             Console.Write("Enter product ID: ");
                             var idToRemove = Console.ReadLine();
-                            if (string.IsNullOrEmpty(idToRemove))
-                            {
-                                break;
-                            }
+                            if (string.IsNullOrEmpty(idToRemove)) break;
                             await _WebShop.CartManager.RemoveFromCart(_currentUser, idToRemove);
-
                             break;
                         case ConsoleKey.O:
-
-
+                            await RenderCartMode();
 
                             break;
                         case ConsoleKey.A:
                             Console.Write("Enter product ID to enter to cart: ");
                             var id = Console.ReadLine();
-                            if (string.IsNullOrEmpty(id))
-                            {
-                                break;
-                            }
+                            if (string.IsNullOrEmpty(id)) break;
 
-                            if (int.TryParse(id, out int productId))
-                            {
-                                var product = await _WebShop.ProductManager.GetProduct(productId);
-                                if (product != null)
-                                {
-                                    await _WebShop.CartManager.AddToUserCart(_currentUser, product);
-                                    Console.WriteLine(product.Name + " added to cart");
-                                }
-                                else
-                                {
-                                    Console.WriteLine("Product not found");
-                                }
-                            }
-                            else
-                            {
-                                Console.WriteLine("Invalid input");
+                            if (!int.TryParse(id, out int productId)) return;
 
+                            var product = await _WebShop.ProductManager.GetProduct(productId);
+                            if (product == null) { Console.WriteLine("Product not found"); return; };
+
+                            await _WebShop.CartManager.AddToUserCart(_currentUser, product);
+                            Console.WriteLine(product.Name + " added to cart");
+
+
+                            break;
+                        case ConsoleKey.T:
+                            Console.Write("Enter product ID");
+                            var idString = Console.ReadLine();
+                            if (int.TryParse(idString, out int result))
+                            {
+                                await DisplayProductDetails(result);
                             }
                             break;
                         default:
@@ -229,8 +258,16 @@ namespace WebShop
                     Console.WriteLine(p.Name);
                 }
             }
-            async Task DisplayProductDetails()
+            async Task DisplayProductDetails(int id)
             {
+                var product = await _WebShop.ProductManager.GetProduct(id);
+                if (product == null) return;
+                Console.Clear();
+                Console.WriteLine($"{"ID",-7}{"Name",-30}{"Price",10}");
+                Console.WriteLine(new string('-', 50)); // Separator line
+                Console.WriteLine($"{product.Id,-7}{product.Name,-30}{product.Price,10} SEK");
+                Console.WriteLine("\nDescription:");
+                Console.WriteLine($"{product.Description,30}");
 
             }
 
@@ -321,29 +358,100 @@ namespace WebShop
             async Task DisplayCart()
             {
                 var cart = await _WebShop.CartManager.GetUserCart(_currentUser);
+                if (cart == null) return;
                 var stringItems = new List<string>() { $"{"Id",-3}  {"Name",-25} {"Price",-7} " };
 
-                foreach (var p in cart)
+                foreach (var p in cart.Products)
                 {
                     stringItems.Add($"{$"[{p.Id}]",-4} {p.Name,-25} {p.Price,-7} SEK ");
                     // stringItems.Add($"{p.Id,-4} {p.Name,-25} {p.Price,-5} SEK ");
                 }
                 // stringItems.Add("Total: " + cart.Sum(p => p.Price) + " SEK");
                 stringItems.Add($"{"Total",36}");
-                stringItems.Add($"{cart.Sum(p => p.Price),38} SEK");
+                var total = cart.Products.Sum(p => p.Price);
+                stringItems.Add($"{total,38} SEK");
 
-                if (cart != null)
+
+                if (stringItems.Count == 0)
                 {
-                    if (stringItems.Count == 0)
-                    {
-                        var emptyCart = new Window("Cart", 0, 4, new List<string> { "Cart is empty" });
-                    }
-                    else
+                    var emptyCart = new Window("Cart", 0, 4, new List<string> { "Cart is empty" });
+                    return;
+                }
+                var cartWindow = new Window("Cart", 0, 4, stringItems);
+
+
+            }
+
+            async Task RenderCartMode()
+            {
+                Console.Clear();
+                Console.BackgroundColor = ConsoleColor.White;
+                Console.ForegroundColor = ConsoleColor.Black;
+                Console.WriteLine("[C] to Checkout");
+                Console.ResetColor();
+                Console.WriteLine("--Cart------------------------------------------------------------------------------------------------------------------");
+                var cart = await _WebShop.CartManager.GetUserCart(_currentUser);
+                if (cart == null) return;
+
+                Console.WriteLine($"{"Id",-6}{"Name",-30}{"Categories",-25}{"Price",-7}");
+                foreach (var item in cart.Products)
+                {
+                    Console.WriteLine($"{$"[{item.Id}]",-6}{item.Name,-30}{string.Join(',', item.Categories.Select(c => c.Name)),-25}{item.Price,-7} SEK");
+                }
+
+                var total = cart.Products.Sum(p => p.Price);
+                Console.WriteLine($"\n{"Taxes",66}");
+                var taxes = (float)total * 0.25;
+                Console.WriteLine($"{taxes,67} SEK");
+                Console.WriteLine($"\n{"Total",66}");
+                Console.WriteLine($"{total,67} SEK");
+                var k = Console.ReadKey(true);
+
+                if (k.Key == ConsoleKey.C)
+                {
+                    // Checkout logic, refactor and extract as a new method later
+                    var cartFromDb = await _WebShop.CartManager.GetUserCart(_currentUser);
+                    var checkoutCart = cartFromDb;
+                    if (checkoutCart == null) return;
+                    if (await _WebShop.CartManager.CheckoutCart(checkoutCart.Id)) // mark cart as checkedout to create an order and calc total
                     {
 
-                        var cartWindow = new Window("Cart", 0, 4, stringItems);
+
+                        Console.Write("Enter postal code: ");
+                        var postalCode = Console.ReadLine();
+                        if (string.IsNullOrEmpty(postalCode)) return;
+
+                        Console.Write("Enter City: ");
+                        var city = Console.ReadLine();
+                        if (string.IsNullOrEmpty(city)) return;
+
+                        Console.Write("Enter Country: ");
+                        var country = Console.ReadLine();
+                        if (string.IsNullOrEmpty(country)) return;
+
+                        var phoneNumber = GetPhoneNumber();
+                        var customer = _currentUser.FillCustomerDetails(postalCode, city, country, phoneNumber);
+
+                        await _WebShop.UserManager.UpdateUser(customer);
+                        Console.WriteLine("Please choose payment method");
+                        Console.WriteLine("Invoice");
+                        Console.Write(": ");
+                        var chosenMethod = Console.ReadLine();
+                        if (string.IsNullOrEmpty(chosenMethod)) return;
+
+                        if (customer == null) return;
+
+                        var order = await _WebShop.OrderManager.CreateOrder(customer, chosenMethod);
+
+                        await _WebShop.OrderManager.ProcessOrder(order.Id);
+
+                        await _WebShop.CartManager.ClearCart(checkoutCart.Id);
                     }
+
                 }
+
+
+
             }
         }
 
@@ -354,7 +462,6 @@ namespace WebShop
             var text3 = "press S for signup, press L for login ";
 
             var welcome = new Window(_WebShop.Settings.ShopName, 2, 1, new List<string> { text1, text2, text3 });
-
 
         }
 
@@ -577,7 +684,7 @@ namespace WebShop
                     Console.Clear();
                     Console.WriteLine("Press enter when done, note the ID for the product you wish to add to cart");
                     Console.WriteLine($"Search: {search}");
-                    Console.WriteLine($"{"ID",-5} - {"Name",-40} {"Price(SEK)",-10} ");
+                    Console.WriteLine($"{"ID",-5} {"Name",-40}   {"Price(SEK)",-10} ");
                     foreach (var product in results)
                     {
 

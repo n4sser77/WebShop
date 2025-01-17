@@ -8,12 +8,14 @@ namespace WebShop.Models
         public int Id { get; set; }
         [Required]
 
-        public double Total { get; set; }
+        public decimal Total { get; set; }
         public string Status { get; set; }
+        public string PaymentMethod { get; set; } = string.Empty;
         public DateTime OrderDate { get; set; }
         public DateTime? DeliveryDate { get; set; }
         public virtual int CustomerId { get; set; }
-        public virtual Customer Customer { get; set; }
+        public required virtual User Customer { get; set; }
+
 
         public virtual List<Product> Products { get; set; } = new List<Product>();
 

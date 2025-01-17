@@ -4,6 +4,6 @@
     {
 
         // public Task<Cart> CreateCart(Customer customer);
-        public Task CheckoutCart(int CartId);
+        public Task<bool> CheckoutCart(int CartId);
     }
 }

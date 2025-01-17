@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using WebShop.Managers;
 using WebShop.Models.Interfaces;
-using WebShop.Models.Managers;
 
 namespace WebShop.Models
 {

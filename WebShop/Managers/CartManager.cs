@@ -1,27 +1,39 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using WebShop.Data;
+using WebShop.Models;
 using WebShop.Models.Interfaces;
 
-namespace WebShop.Models.Managers
+namespace WebShop.Managers
 {
     public class CartManager : ICartManager
     {
 
-        public async Task<List<Product>> GetUserCart(User user)
+        public async Task<Cart> GetUserCart(User user)
         {
-            using var db = new AppDbContext();
-            var userFromDb = await db.Users.Include(u => u.Cart)
-                                           .ThenInclude(c => c.Products)
-                                        .FirstOrDefaultAsync(u => u == user);
-            if (userFromDb != null)
+            try
             {
+                using var db = new AppDbContext();
+                var userFromDb = await db.Users.Include(u => u.Cart)
+                                               .ThenInclude(c => c.Products)
+                                               .ThenInclude(p => p.Categories)
+                                            .FirstOrDefaultAsync(u => u == user);
+                if (userFromDb == null) throw new Exception("User is null");
+
+
                 var cart = userFromDb.Cart;
-                if (cart != null)
-                {
-                    return cart.Products.ToList();
-                }
+                if (cart == null) throw new Exception("Cart is null");
+
+
+                return cart;
+
             }
-            return new List<Product>();
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
+                throw;
+            }
+
+
         }
         public async Task RemoveFromCart(User user, string id)
         {
@@ -98,14 +110,58 @@ namespace WebShop.Models.Managers
         }
 
 
-        public async Task CheckoutCart(int cartId)
+        public async Task<bool> CheckoutCart(int cartId)
         {
-            using var db = new AppDbContext();
-            var cart = db.Carts.FirstOrDefault(c => c.Id == cartId);
-            if (cart != null)
+            try
             {
-                cart.IsCheckedOut = true;
+
+                using var db = new AppDbContext();
+                var cart = db.Carts.FirstOrDefault(c => c.Id == cartId);
+                if (cart != null)
+                {
+                    if (cart.IsCheckedOut)
+                    {
+
+                        throw new InvalidOperationException("Cart is checked out and needs to be reset");
+                    }
+                    cart.IsCheckedOut = true;
+                    await db.SaveChangesAsync();
+                    return true;
+
+
+                }
+                return false;
+            }
+            catch (InvalidOperationException e)
+            {
+                Console.WriteLine(e.Message);
+                await ClearCart(cartId);
+                return false;
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
+                throw;
+            }
+
+        }
+
+        public async Task ClearCart(int cartId)
+        {
+            try
+            {
+                using var db = new AppDbContext();
+
+                var cart = await db.Carts.Include(c => c.Products).FirstOrDefaultAsync(c => c.Id == cartId);
+                if (cart == null) throw new Exception("Cart not found");
+                cart.IsCheckedOut = false;
+                cart.Products.Clear();
                 await db.SaveChangesAsync();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
+                throw;
             }
         }
 

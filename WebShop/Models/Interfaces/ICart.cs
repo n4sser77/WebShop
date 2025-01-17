@@ -10,7 +10,7 @@ namespace WebShop.Models.Interfaces
     {
         public int Id { get; set; }
         public List<Product> Products { get; set; }
-        public double Total { get; set; }
+        public decimal Total { get; set; }
 
     }
 }

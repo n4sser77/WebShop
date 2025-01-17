@@ -14,7 +14,6 @@ namespace WebShop.Data
         public DbSet<User> Users { get; set; }
         public DbSet<Cart> Carts { get; set; }
         public DbSet<Order> Orders { get; set; }
-        public DbSet<Customer> Customers { get; set; }
         public DbSet<Category> Categories { get; set; }
 
 

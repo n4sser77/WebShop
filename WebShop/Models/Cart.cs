@@ -12,7 +12,7 @@ namespace WebShop.Models
     public class Cart : ICart
     {
         public int Id { get; set; }
-        public double Total { get; set; }
+        public decimal Total { get; set; }
         public bool IsCheckedOut { get; set; } = false;
 
         public virtual List<Product> Products { get; set; } = new List<Product>();

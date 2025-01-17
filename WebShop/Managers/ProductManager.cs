@@ -1,8 +1,9 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using WebShop.Data;
+using WebShop.Models;
 using WebShop.Models.Interfaces;
 
-namespace WebShop.Models.Managers
+namespace WebShop.Managers
 {
     public class ProductManager : IProductManager
     {

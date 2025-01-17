@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using WebShop.Models.Interfaces;
 
-namespace WebShop.Models.Managers
+namespace WebShop.Managers
 {
     public class WebShopSettings : IWebSHopSettings
     {

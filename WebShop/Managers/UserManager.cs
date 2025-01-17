@@ -1,13 +1,32 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using WebShop.Data;
+using WebShop.Models;
 using WebShop.Models.Interfaces;
 
-namespace WebShop.Models.Managers
+namespace WebShop.Managers
 {
     public class UserManager : IAdminManager
     {
 
+        public async Task UpdateUser(User updatedUser)
+        {
+            try
+            {
+                using var db = new AppDbContext();
+                var user = await db.Users.FirstOrDefaultAsync(u => u.Id == updatedUser.Id);
+                if (user == null) throw new ArgumentNullException("User not found");
+                user.City = updatedUser.City;
+                user.Country = updatedUser.Country;
+                user.PhoneNumber = updatedUser.PhoneNumber;
+                user.PostalCode = updatedUser.PostalCode;
+                await db.SaveChangesAsync();
+            }
+            catch (Exception e)
+            {
 
+                throw;
+            }
+        }
         public async Task<User?> CreateUser(User user)
         {
 

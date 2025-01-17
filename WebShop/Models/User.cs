@@ -17,34 +17,37 @@ namespace WebShop.Models
         public int Id { get; set; }
 
         [Required]
-        public string Email { get; set; }
+        public string Email { get; set; } = "";
         [Required]
-        public string Password { get; set; }
+        public string Password { get; set; } = "";
         [Required]
-        public string FirstName { get; set; }
+        public string FirstName { get; set; } = "";
         [Required]
-        public string LastName { get; set; }
+        public string LastName { get; set; } = "";
         public string? PhoneNumber { get; set; }
         [Required]
-        public string Role { get; set; }
+        public string Role { get; set; } = "";
+        public string? City { get; set; }
+        public string? PostalCode { get; set; }
+        public string? Country { get; set; }
 
         public virtual int CartId { get; set; }
         public virtual Cart? Cart { get; set; }
 
-        public Customer ToCustomer(string shippingAdress, string billingAdress, string postalCode, string city, string country)
+        // must be called before order creation
+        public User FillCustomerDetails(string postalCode, string city, string country, string phoneNumber)
         {
-            return new Customer
+            return new User
             {
+                Id = this.Id,
                 Email = this.Email,
                 Password = this.Password,
                 FirstName = this.FirstName,
                 LastName = this.LastName,
-                PhoneNumber = this.PhoneNumber,
+                PhoneNumber = phoneNumber,
                 Role = this.Role,
                 Cart = this.Cart,
                 CartId = this.CartId,
-                ShippingAddress = shippingAdress,
-                BillingAddress = billingAdress,
                 PostalCode = postalCode,
                 City = city,
                 Country = country,
@@ -55,14 +58,7 @@ namespace WebShop.Models
 
     }
 
-    public class Customer : User
-    {
-        public required string ShippingAddress { get; set; }
-        public required string BillingAddress { get; set; }
-        public required string City { get; set; }
-        public required string PostalCode { get; set; }
-        public required string Country { get; set; }
-    }
+
 
 
 }
