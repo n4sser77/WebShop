@@ -22,6 +22,7 @@ namespace WebShop
                 {
                     case ConsoleKey.Enter:
                         // When Enter is pressed, return the password
+                        Console.WriteLine();
                         return password.ToString();
 
                     case ConsoleKey.Backspace:

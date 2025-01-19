@@ -34,7 +34,7 @@ namespace WebShop.Managers
             try
             {
                 using var db = new AppDbContext();
-                var p = await db.Products.FirstOrDefaultAsync(p => p.Id == id);
+                var p = await db.Products.Include(p => p.Categories).FirstOrDefaultAsync(p => p.Id == id);
                 if (p != null)
                 {
                     return p;
@@ -65,18 +65,28 @@ namespace WebShop.Managers
                 throw;
             }
         }
-        public async Task UpdateProduct(Product oldProduct, Product newProduct)
+        public async Task UpdateProduct(int productId, string? newName = null, decimal? newPrice = null, bool? isFeatured = null, string? newDescription = null)
         {
             try
             {
-
                 using var db = new AppDbContext();
-                var oldProductFromList = await db.Products.FirstOrDefaultAsync(p => p.Id == oldProduct.Id);
-                if (oldProductFromList == null)
-                {
-                    return;
-                }
-                oldProductFromList = newProduct;
+                var product = await db.Products.FirstOrDefaultAsync(p => p.Id == productId);
+
+                if (product == null) return;
+
+                // Update properties only if new values are provided
+                if (!string.IsNullOrEmpty(newName))
+                    product.Name = newName;
+
+                if (newPrice.HasValue)
+                    product.Price = newPrice.Value;
+
+                if (isFeatured.HasValue)
+                    product.IsFeatured = isFeatured.Value;
+
+                if (!string.IsNullOrEmpty(newDescription))
+                    product.Description = newDescription;
+
                 await db.SaveChangesAsync();
             }
             catch (Exception e)
@@ -84,8 +94,8 @@ namespace WebShop.Managers
                 Console.WriteLine(e.Message);
                 throw;
             }
-
         }
+
         public async Task DeleteProduct(int id)
         {
             try
@@ -97,7 +107,7 @@ namespace WebShop.Managers
                 {
                     return;
                 }
-                db.Products.Remove(p);
+                p.IsDeleted = true;
                 await db.SaveChangesAsync();
             }
             catch (Exception e)
@@ -112,7 +122,7 @@ namespace WebShop.Managers
             try
             {
                 using var db = new AppDbContext();
-                var p = await db.Products.ToListAsync();
+                var p = await db.Products.Include(p => p.Categories).ToListAsync();
                 if (p != null)
                 {
                     return p;
