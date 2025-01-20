@@ -75,7 +75,7 @@ namespace WebShop
                             continue;
                         case ConsoleKey.C:
                             await ViewCustomers();
-                            break;
+                            continue;
                         case ConsoleKey.T:
                             Console.Write("Enter product ID: ");
                             var idString = Console.ReadLine();
@@ -255,11 +255,20 @@ namespace WebShop
             async Task DisplayProducts()
             {
                 var products = await _WebShop.ProductManager.ProductsToList();
-
+                if (products == null)
+                {
+                    Console.WriteLine("There are no products"); return;
+                }
                 foreach (var p in products)
                 {
                     Console.WriteLine($"{p.Id,-6} {p.Name,-35} {string.Join(',', p.Categories.Select(c => c.Name)),-35} {p.Price,-7}");
                 }
+                Console.Write("Enter product ID: ");
+                string productIdString = Console.ReadLine();
+                int productId = 0;
+
+                if (!int.TryParse(productIdString, out productId)) return;
+                await DisplayProductDetailsAdmin(productId);
             }
 
 
@@ -267,13 +276,21 @@ namespace WebShop
             {
                 var product = await _WebShop.ProductManager.GetProduct(id);
                 if (product == null) return;
-                Console.Clear();
-                Console.WriteLine($"{"ID",-7}{"Name",-35}{"Categories",-35}{"Price",10}");
-                Console.WriteLine(new string('-', 90)); // Separator line
-                Console.WriteLine($"{product.Id,-7}{product.Name,-35}{string.Join(',', product.Categories.Select(c => c.Name)),-35}{product.Price,10} SEK");
-                Console.WriteLine("\nDescription:");
-                Console.WriteLine($"{product.Description,30}");
 
+                Console.Clear();
+                Console.WriteLine(new string('=', 90)); // Top border
+                Console.WriteLine($"{"Product Details",-30}");
+                Console.WriteLine(new string('=', 90));
+
+                Console.WriteLine($"{"ID:",-15} {product.Id}");
+                Console.WriteLine($"{"Name:",-15} {product.Name}");
+                Console.WriteLine($"{"Categories:",-15} {string.Join(", ", product.Categories.Select(c => c.Name))}");
+                Console.WriteLine($"{"Price:",-15} {product.Price} SEK");
+                Console.WriteLine(new string('-', 90)); // Separator for the description
+
+                Console.WriteLine("\nDescription:");
+                Console.WriteLine($"{product.Description,-80}");
+                Console.WriteLine(new string('=', 90)); // Bottom border
             }
 
             async Task DisplayProductDetailsAdmin(int id)
@@ -282,12 +299,20 @@ namespace WebShop
                 if (product == null) return;
 
                 Console.Clear();
-                Console.WriteLine($"{"ID",-7}{"Name",-35}{"Categories",-35}{"IsFeautured",-20}{"Price",-10}");
-                Console.WriteLine(new string('-', 110));
-                Console.WriteLine($"{product.Id,-7}{product.Name,-35}{string.Join(',', product.Categories.Select(c => c.Name)),-35}{product.IsFeatured,-20}{product.Price + " SEK",-10}");
+                Console.WriteLine(new string('=', 110)); // Top border
+                Console.WriteLine($"{"Admin - Product Details",-50}");
+                Console.WriteLine(new string('=', 110));
+
+                Console.WriteLine($"{"ID:",-15} {product.Id}");
+                Console.WriteLine($"{"Name:",-15} {product.Name}");
+                Console.WriteLine($"{"Categories:",-15} {string.Join(", ", product.Categories.Select(c => c.Name))}");
+                Console.WriteLine($"{"Featured:",-15} {product.IsFeatured}");
+                Console.WriteLine($"{"Price:",-15} {product.Price} SEK");
+                Console.WriteLine(new string('-', 110)); // Separator for the description
 
                 Console.WriteLine("\nDescription:");
-                Console.WriteLine(product.Description);
+                Console.WriteLine($"{product.Description,40}");
+                Console.WriteLine(new string('-', 110));
 
                 Console.WriteLine("\n[N] Edit Name | [P] Edit Price | [D] Edit Description | [F] Toggle Featured | [X] Exit");
 
@@ -303,23 +328,23 @@ namespace WebShop
                     switch (key)
                     {
                         case ConsoleKey.N:
-                            Console.Write("Enter new name:");
+                            Console.Write("Enter new name: ");
                             newName = Console.ReadLine();
                             break;
 
                         case ConsoleKey.P:
-                            Console.Write("Enter new price:");
+                            Console.Write("Enter new price: ");
                             if (decimal.TryParse(Console.ReadLine(), out var price))
                                 newPrice = price;
                             break;
 
                         case ConsoleKey.D:
-                            Console.Write("Enter new description:");
+                            Console.Write("Enter new description: ");
                             newDescription = Console.ReadLine();
                             break;
 
                         case ConsoleKey.F:
-                            isFeatured = !(product.IsFeatured);
+                            isFeatured = !product.IsFeatured;
                             Console.WriteLine($"Featured status set to {isFeatured.Value}");
                             break;
 
@@ -331,6 +356,7 @@ namespace WebShop
                     }
                 }
             }
+
 
 
             async Task AddProduct()
@@ -571,6 +597,9 @@ namespace WebShop
                         break;
                     case ConsoleKey.N:
                         (newFirstname, newLastname) = GetName();
+                        break;
+                    case ConsoleKey.P:
+                        newPasswordHash = GetPasswordHash();
                         break;
                     case ConsoleKey.X:
                         if (userIdString == null && newEmail == null && newFirstname == null && newLastname == null && newPasswordHash == null && newPhonenumber == null) return;
