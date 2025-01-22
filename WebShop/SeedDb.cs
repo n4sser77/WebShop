@@ -9,6 +9,90 @@ namespace WebShop
 {
     internal class SeedDb
     {
+        public static async Task SeedWithUsers()
+        {
+            using var db = new AppDbContext();
+
+            try
+            {
+                var faker = new Bogus.Faker("en");
+
+                var users = Enumerable.Range(1, 50).Select(_ => new User
+                {
+                    Email = faker.Internet.Email(),
+                    FirstName = faker.Name.FirstName(),
+                    LastName = faker.Name.LastName(),
+                    Country = faker.Address.Country(),
+                    City = faker.Address.City(),
+                    Password = faker.Internet.Password(),
+                    PhoneNumber = faker.Phone.PhoneNumber(),
+                    PostalCode = faker.Address.ZipCode(),
+                    Role = "Customer",
+                    Cart = new Cart(),
+                });
+
+                await db.Users.AddRangeAsync(users);
+                await db.SaveChangesAsync();
+                Console.WriteLine("Successfully seeded users!");
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"Error seeding users: {e.Message}");
+                throw;
+            }
+        }
+        public static async Task SeedWithOrders()
+        {
+            using var db = new AppDbContext();
+
+            try
+            {
+                var faker = new Bogus.Faker("en");
+
+                var users = db.Users.ToList();
+                var products = db.Products.ToList();
+
+
+                if (!users.Any() || !products.Any())
+                {
+                    Console.WriteLine("No users or products found. Ensure the database is seeded with these first.");
+                    return;
+                }
+
+                var orders = Enumerable.Range(1, 100).Select(_ =>
+                {
+
+                    var randomUser = faker.PickRandom(users);
+
+
+                    var randomProducts = faker.PickRandom(products, faker.Random.Int(1, 5)).ToList();
+
+                    return new Order
+                    {
+                        CustomerId = randomUser.Id,
+                        Customer = randomUser,
+                        OrderDate = faker.Date.Past(1), // Random date in the past year
+                        Status = faker.PickRandom(new[] { "Pending", "Completed", "Cancelled" }),
+                        PaymentMethod = faker.PickRandom(new[] { "Invoice", "PayPal" }),
+                        Total = randomProducts.Sum(p => p.Price), // Assuming Product has a Price property
+                        Products = randomProducts,
+                        
+                    };
+                }).ToList();
+
+                // Add orders to the database
+                await db.Orders.AddRangeAsync(orders);
+                await db.SaveChangesAsync();
+
+                Console.WriteLine("Successfully seeded orders!");
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"Error seeding orders: {e.Message}");
+                throw;
+            }
+        }
+
         public static async Task SeedDatabase()
         {
             using var db = new AppDbContext();

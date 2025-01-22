@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using WebShop.Data;
+using WebShop.DTOs;
 using WebShop.Models;
 using WebShop.Models.Interfaces;
 
@@ -144,6 +145,170 @@ namespace WebShop.Managers
                 using var db = new AppDbContext();
                 await db.Categories.AddAsync(new Category { Name = category });
                 await db.SaveChangesAsync();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
+                throw;
+            }
+        }
+
+        public async Task UpdateCategory(int id, string newName)
+        {
+            try
+            {
+                using var db = new AppDbContext();
+                var category = await db.Categories.FirstOrDefaultAsync(c => c.Id == id);
+                if (category == null) throw new NullReferenceException("Category not found");
+                category.Name = newName;
+
+                await db.SaveChangesAsync();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
+                throw;
+            }
+        }
+        public async Task DeleteCategory(int id)
+        {
+            try
+            {
+                using var db = new AppDbContext();
+
+                var category = await db.Categories.FirstOrDefaultAsync(c => c.Id == id);
+                if (category == null) throw new NullReferenceException("Category not found");
+                var catogoryProducts = db.Products.Where(p => p.Categories.Contains(category));
+                if (catogoryProducts != null)
+                {
+                    foreach (var p in catogoryProducts)
+                    {
+                        p.Categories.Remove(category);
+                    }
+                }
+
+                db.Remove(category);
+
+                await db.SaveChangesAsync();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
+                throw;
+            }
+        }
+
+        public async Task<List<Product>?> GetCategoryProducts(int id)
+        {
+            try
+            {
+                using var db = new AppDbContext();
+                var category = db.Categories.FirstOrDefault(c => c.Id == id);
+                if (category == null) throw new NullReferenceException("Category was not found");
+                var categoryProducts = await db.Products.Where(p => p.Categories.Contains(category)).ToListAsync();
+
+                if (categoryProducts == null) return null;
+
+                return categoryProducts;
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
+                throw;
+            }
+        }
+
+        public async Task<List<Product>> GetTopProductsAsync()
+        {
+            try
+            {
+                using var db = new AppDbContext();
+                var query = """
+                            SELECT p.Id, p.Name, p.Price, p.Description,p.IsFeatured, p.IsDeleted, COUNT(op.ProductsId) AS SoldCount
+                            FROM dbo.Products p
+                            INNER JOIN OrderProduct op ON p.Id = op.ProductsId
+                            INNER JOIN CategoryProduct cp ON cp.ProductsId = p.Id
+                            INNER JOIN Categories c ON c.Id = cp.CategoriesId
+                            GROUP BY p.Id, p.Name, p.Price, p.Description, p.IsFeatured, p.IsDeleted
+                            ORDER BY SoldCount DESC
+                            """;
+
+                var topProducts = await db.Products
+                    .FromSqlRaw(query)
+                    .ToListAsync();
+
+                topProducts.ForEach(p => p.Categories = db.Categories.Where(c => c.Products.Any(categoryProduct => categoryProduct.Id == p.Id)).ToList());
+
+                return topProducts;
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
+                throw;
+            }
+        }
+
+        public async Task<List<DTOs.PopularProductInCityDto>> GetPopularProductInCity()
+        {
+            try
+            {
+                using var db = new AppDbContext();
+                var query1 = """
+                            SELECT p.Id, p.Name, p.Price, p.Description,p.IsFeatured, p.IsDeleted, u.City, u.Country,COUNT(op.ProductsId) AS SoldCount
+                            FROM dbo.Products p
+                            INNER JOIN OrderProduct op ON p.Id = op.ProductsId
+                            INNER JOIN Orders o ON op.OrdersId = o.Id
+                            INNER JOIN Users u ON o.CustomerId = u.Id
+                            GROUP BY u.Country, u.City,p.Id, p.Name, p.Price, p.Description, p.IsFeatured, p.IsDeleted
+                            
+                            """;
+
+                var query2 = """
+                             SELECT 
+                                 u.Country,
+                                 p.Id,
+                             	p.Name,
+                                 p.Price,
+                                 p.Description,
+                                 p.IsDeleted,
+                                 p.IsFeatured,
+                                 COUNT(op.OrdersId) AS SoldCount
+                             FROM dbo.Products p
+                             INNER JOIN OrderProduct op ON p.Id = op.ProductsId
+                             INNER JOIN Orders o ON op.OrdersId = o.Id
+                             INNER JOIN Users u ON o.CustomerId = u.Id
+                             GROUP BY u.Country,p.Id , p.Name, p.Price, p.Description, p.Isdeleted, p.IsFeatured
+                             HAVING COUNT( op.OrdersId) > 0
+                             ORDER BY u.Country, SoldCount DESC;
+                             """;
+
+
+
+                var popularProducts = await db.Database.SqlQueryRaw<PopularProductInCityDto>(query2).ToListAsync();
+
+                return popularProducts.Count > 0
+                    ? popularProducts
+                    : new List<PopularProductInCityDto>();
+
+
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
+                throw;
+            }
+        }
+
+        public async Task<List<Category>> GetPopularCategories()
+        {
+            try
+            {
+                using var db = new AppDbContext();
+
+                var popularCategories = await db.Categories
+                                                .Include(c => c.Products)
+                                                .OrderByDescending(c => c.Products.Sum(p => p.SoldCount)).Take(2).ToListAsync();
+                return popularCategories;
             }
             catch (Exception e)
             {

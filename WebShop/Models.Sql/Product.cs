@@ -17,6 +17,7 @@ namespace WebShop.Models
         public bool IsDeleted { get; set; }
 
         public bool IsFeatured { get; set; }
+        public int SoldCount { get; set; }
 
 
         public virtual ICollection<Category> Categories { get; set; } = new List<Category>();

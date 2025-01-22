@@ -11,13 +11,23 @@ namespace WebShop
         {
             Shop app = new Shop("Your console game shop");
 
-            //await ResetCartsAndIdentityAsync();
+            // fuuuck I accedently ran this
+            // await ResetCartsAndIdentityAsync();
+
+            // to fix the aboive mistake
+            // await RecreateCartsForUsersAsync();
+            //await SeedDb.SeedWithUsers();
+            //await SeedDb.SeedWithOrders();
+
             await app.Run();
 
             // DB PRODUCT SEEDING
             //await SeedDb.SeedDatabase();
             //Console.WriteLine("Database seeded sucessfully  ");
             //Console.WriteLine();
+
+            // already excuted but can be again to seed with more random users and orders. thanks to bogus.
+
 
         }
 
@@ -49,6 +59,42 @@ namespace WebShop
                 throw;
             }
         }
+
+        public static async Task RecreateCartsForUsersAsync()
+        {
+            try
+            {
+                using var db = new AppDbContext();
+
+                // Get all users who currently have no cart
+                var usersWithoutCarts = await db.Users.ToListAsync();
+
+                // Recreate a cart for each user
+                foreach (var user in usersWithoutCarts)
+                {
+                    var newCart = new Cart
+                    {
+
+                        Products = new List<Product>() // Empty cart
+                    };
+                    user.Cart = newCart;
+
+
+
+
+                }
+
+                await db.SaveChangesAsync();
+
+                Console.WriteLine("Carts have been recreated for users without carts.");
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"Error while recreating carts: {e.Message}");
+                throw;
+            }
+        }
+
 
     }
 }

@@ -15,6 +15,7 @@ namespace WebShop.Models
         public decimal Total { get; set; }
         public bool IsCheckedOut { get; set; } = false;
 
+
         public virtual List<Product> Products { get; set; } = new List<Product>();
 
 

@@ -67,7 +67,7 @@ namespace WebShop.Managers
             {
                 using var db = new AppDbContext();
 
-                var existningUser = await db.Users.FirstOrDefaultAsync(u => u == user);
+                var existningUser = await db.Users.FirstOrDefaultAsync(u => u.Email == user.Email);
                 if (existningUser != null)
                 {
                     Console.WriteLine("User already exists");

@@ -33,7 +33,7 @@ namespace WebShop.Managers
                     Status = "Created",
                     PaymentMethod = paymentMethod
                 };
-                db.Orders.Add(order);
+                await db.Orders.AddAsync(order);
                 await db.SaveChangesAsync();
 
                 return order;

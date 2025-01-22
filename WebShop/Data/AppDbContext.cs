@@ -18,12 +18,23 @@ namespace WebShop.Data
 
 
 
+
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             optionsBuilder
                 .UseSqlServer("Server=NassorisAspire\\SQLEXPRESS;Database=Webshop2;Trusted_Connection=True;TrustServerCertificate=True;Integrated Security=True");
             //.EnableSensitiveDataLogging(false) // Enables detailed error messages
             //.LogTo(Console.WriteLine);    // Logs queries and errors to the console
+        }
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            base.OnModelCreating(modelBuilder);
+            modelBuilder.Entity<User>().HasIndex(x => x.Email).IsUnique();
+            // modelBuilder.Entity<DTOs.PopularProductInCityDto>().HasNoKey(); // Since it's not a table
+
+
+
         }
 
     }
