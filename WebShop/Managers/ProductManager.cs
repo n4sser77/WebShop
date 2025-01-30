@@ -66,7 +66,27 @@ namespace WebShop.Managers
                 throw;
             }
         }
-        public async Task UpdateProduct(int productId, string? newName = null, decimal? newPrice = null, bool? isFeatured = null, string? newDescription = null)
+        public async Task RemoveCategoryFromProduct(int productId, string? categoryName)
+        {
+            if (string.IsNullOrEmpty(categoryName)) return;
+
+            try
+            {
+                using var db = new AppDbContext();
+                var category = await db.Categories.FirstOrDefaultAsync(c => c.Name.Contains(categoryName, StringComparison.OrdinalIgnoreCase));
+                if (category == null) return;
+                var product = await db.Products.Include(p => p.Categories).FirstOrDefaultAsync(p => p.Id == productId);
+
+                product.Categories.Remove(category);
+                await db.SaveChangesAsync();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
+                throw;
+            }
+        }
+        public async Task UpdateProduct(int productId, string? newName = null, decimal? newPrice = null, bool? isFeatured = null, string? newDescription = null, string? newCategory = null)
         {
             try
             {
@@ -87,6 +107,22 @@ namespace WebShop.Managers
 
                 if (!string.IsNullOrEmpty(newDescription))
                     product.Description = newDescription;
+
+                if (!string.IsNullOrEmpty(newCategory))
+                {
+                    var existingCategory = db.Categories.FirstOrDefault(c => c.Name.ToUpper().Contains(newCategory.ToUpper()));
+                    if (existingCategory == null)
+                    {
+                        var c = new Category { Name = newCategory };
+                        await db.Categories.AddAsync(c);
+                        product.Categories.Add(c);
+                    }
+                    else
+                    {
+                        product.Categories.Add(existingCategory);
+                    }
+
+                }
 
                 await db.SaveChangesAsync();
             }
@@ -308,6 +344,16 @@ namespace WebShop.Managers
                 var popularCategories = await db.Categories
                                                 .Include(c => c.Products)
                                                 .OrderByDescending(c => c.Products.Sum(p => p.SoldCount)).Take(2).ToListAsync();
+
+                popularCategories.ForEach(c =>
+                {
+                    foreach (var item in c.Products)
+                    {
+
+                        item.SoldCount = db.Orders.Count(o => o.Products.Contains(item));
+                    }
+                });
+
                 return popularCategories;
             }
             catch (Exception e)

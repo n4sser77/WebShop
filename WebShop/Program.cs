@@ -14,21 +14,25 @@ namespace WebShop
             // fuuuck I accedently ran this
             // await ResetCartsAndIdentityAsync();
 
-            // to fix the aboive mistake
+            // to fix the above mistake
             // await RecreateCartsForUsersAsync();
-            //await SeedDb.SeedWithUsers();
-            //await SeedDb.SeedWithOrders();
 
-            await app.Run();
+
 
             // DB PRODUCT SEEDING
             //await SeedDb.SeedDatabase();
             //Console.WriteLine("Database seeded sucessfully  ");
-            //Console.WriteLine();
-
+            //Console.WriteLine("Press enter to continue");
+            //Console.ReadLine();
+            // Seeding with bogus
+            //await SeedDb.SeedWithUsers();
+            //await SeedDb.SeedWithOrders();
+            //Console.WriteLine("Orders seeded, press enter to contiune");
+            //Console.ReadLine();
             // already excuted but can be again to seed with more random users and orders. thanks to bogus.
 
 
+            await app.Run();
         }
 
         public static async Task ResetCartsAndIdentityAsync()

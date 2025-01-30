@@ -27,7 +27,7 @@ namespace WebShop.Managers
                 var order = new Order
                 {
                     Customer = customerFromDb,
-                    Products = customerFromDb.Cart.Products,
+                    Products = (List<Product>)customerFromDb.Cart.Products,
                     Total = customerFromDb.Cart.Total,
                     OrderDate = DateTime.Now,
                     Status = "Created",

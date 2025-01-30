@@ -35,7 +35,7 @@ namespace WebShop.Migrations
                 table: "Products");
 
             migrationBuilder.CreateTable(
-                name: "CartProducts",
+                name: "CartProduct",
                 columns: table => new
                 {
                     CartsId = table.Column<int>(type: "int", nullable: false),
@@ -43,15 +43,15 @@ namespace WebShop.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_CartProducts", x => new { x.CartsId, x.ProductsId });
+                    table.PrimaryKey("PK_CartProduct", x => new { x.CartsId, x.ProductsId });
                     table.ForeignKey(
-                        name: "FK_CartProducts_Carts_CartsId",
+                        name: "FK_CartProduct_Carts_CartsId",
                         column: x => x.CartsId,
                         principalTable: "Carts",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_CartProducts_Products_ProductsId",
+                        name: "FK_CartProduct_Products_ProductsId",
                         column: x => x.ProductsId,
                         principalTable: "Products",
                         principalColumn: "Id",
@@ -59,7 +59,7 @@ namespace WebShop.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "OrderProducts",
+                name: "OrderProduct",
                 columns: table => new
                 {
                     OrdersId = table.Column<int>(type: "int", nullable: false),
@@ -69,13 +69,13 @@ namespace WebShop.Migrations
                 {
                     table.PrimaryKey("PK_OrderProducts", x => new { x.OrdersId, x.ProductsId });
                     table.ForeignKey(
-                        name: "FK_OrderProducts_Orders_OrdersId",
+                        name: "FK_OrderProduct_Orders_OrdersId",
                         column: x => x.OrdersId,
                         principalTable: "Orders",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_OrderProducts_Products_ProductsId",
+                        name: "FK_OrderProduct_Products_ProductsId",
                         column: x => x.ProductsId,
                         principalTable: "Products",
                         principalColumn: "Id",
@@ -83,12 +83,12 @@ namespace WebShop.Migrations
                 });
 
             migrationBuilder.CreateIndex(
-                name: "IX_CartProducts_ProductsId",
+                name: "IX_CartProduct_ProductsId",
                 table: "CartProduct",
                 column: "ProductsId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_OrderProducts_ProductsId",
+                name: "IX_OrderProduct_ProductsId",
                 table: "OrderProduct",
                 column: "ProductsId");
         }

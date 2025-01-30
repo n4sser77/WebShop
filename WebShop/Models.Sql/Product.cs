@@ -20,9 +20,9 @@ namespace WebShop.Models
         public int SoldCount { get; set; }
 
 
-        public virtual ICollection<Category> Categories { get; set; } = new List<Category>();
-        public virtual ICollection<Order>? Orders { get; set; } = new List<Order>();
-        public virtual ICollection<Cart>? Carts { get; set; } = new List<Cart>();
+        public virtual List<Category> Categories { get; set; } = new List<Category>();
+        public virtual List<Order>? Orders { get; set; } = new List<Order>();
+        public virtual List<Cart>? Carts { get; set; } = new List<Cart>();
 
 
     }

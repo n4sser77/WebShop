@@ -1,7 +1,7 @@
-﻿using Microsoft.IdentityModel.Tokens;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http.Headers;
 using System.Text;
 using System.Threading.Channels;
 using System.Threading.Tasks;
@@ -58,13 +58,15 @@ namespace WebShop
                 {
                     Console.Clear();
 
+
+
                     var window1 = new Window(_currentUser.Role, 0, 0, new List<string> { "Welcome " + _currentUser.FirstName + "!", "[X] to sign out" });
-                    var toolbarWindow = new Window("Admin tools", 20, 0, new List<string> { "[D] to add a category", "[L] to list categories", "[B] to view best sellers ", "[W] to view popular by city ", "[Y] to view popular categories " });
+                    var toolbarWindow = new Window("Admin tools", 20, 0, new List<string> { "[D] to add a category", "[L] to list categories", "[B] to view best sellers ", "[W] to sales by city ", "[Y] to view popular categories " });
                     var toolbar1Window = new Window("Product tools", 72, 0, new List<string> { "[P] to add a product", "[A] to list products", "[H] to list all featured products", "[S] to search products", "[T] to view a products details", "[C] to view customers " });
 
 
 
-
+                    cts.Cancel();
                     var k = Console.ReadKey(true);
                     switch (k.Key)
                     {
@@ -111,7 +113,7 @@ namespace WebShop
                             var idStringFromSearch = Console.ReadLine();
                             if (int.TryParse(idStringFromSearch, out int resultFromSearch))
                             {
-                                await DisplayProductDetails(resultFromSearch);
+                                await DisplayProductDetailsAdmin(resultFromSearch);
                             }
                             break;
                         case ConsoleKey.H:
@@ -143,10 +145,11 @@ namespace WebShop
                     Console.ReadKey();
 
                 }
-                else if (_IsLoggedIn && _currentUser.Role == "Customer")
+                else if (_IsLoggedIn && _currentUser.Role.ToLower() == "customer")
                 {
                     Console.Clear();
                     var welcomeText = "Welcome " + _currentUser.FirstName + "!";
+                    await DisplayLogo();
 
 
                     var window1 = new Window(_currentUser.Role, 0, 0, new List<string> { welcomeText });
@@ -226,16 +229,19 @@ namespace WebShop
                 else
                 {
                     WelcomeUser();
+
                     await UserInput();
                     continue;
                 }
             }
 
-            static void ChangeConsoleColors(ConsoleColor foreground, ConsoleColor background)
-            {
-                Console.ForegroundColor = foreground;
-                Console.BackgroundColor = background;
-            }
+
+        }
+
+        private static void ChangeConsoleColors(ConsoleColor foreground, ConsoleColor background)
+        {
+            Console.ForegroundColor = foreground;
+            Console.BackgroundColor = background;
         }
 
         private async Task DisplayPopularProductsInCity()
@@ -256,8 +262,7 @@ namespace WebShop
             // Display the products grouped by country
             foreach (var countryGroup in groupedByCountry)
             {
-                Console.BackgroundColor = ConsoleColor.White;
-                Console.ForegroundColor = ConsoleColor.Black;
+                ChangeConsoleColors(foreground: ConsoleColor.Black, background: ConsoleColor.White);
                 Console.WriteLine();
                 Console.WriteLine($"Country: {countryGroup.Key}");
                 Console.WriteLine($"{"Id",-6}{"Name",-30}{"Copies sold",-10}");
@@ -303,8 +308,7 @@ namespace WebShop
         private async Task RenderCartMode()
         {
             Console.Clear();
-            Console.BackgroundColor = ConsoleColor.White;
-            Console.ForegroundColor = ConsoleColor.Black;
+            ChangeConsoleColors(ConsoleColor.Black, ConsoleColor.White);
             Console.WriteLine("[C] to Checkout");
             Console.ResetColor();
             Console.WriteLine("--Cart------------------------------------------------------------------------------------------------------------------");
@@ -319,7 +323,7 @@ namespace WebShop
 
             var total = cart.Products.Sum(p => p.Price);
             Console.WriteLine($"\n{"Taxes",66}");
-            var taxes = (float)total * 0.25;
+            var taxes = (float)total * 0.04;
             Console.WriteLine($"{taxes,67} SEK");
             Console.WriteLine($"\n{"Total",66}");
             Console.WriteLine($"{total,67} SEK");
@@ -352,8 +356,8 @@ namespace WebShop
 
                     await _WebShop.UserManager.UpdateUser(customer.Id, null, null, null, phoneNumber, null, postalCode, country, city);
                     Console.WriteLine("Please choose payment method");
-                    Console.WriteLine("   Invoice Or Paypal");
-                    Console.Write(": ");
+                    Console.Write("  Invoice Or Paypal: ");
+
                     var chosenMethod = Console.ReadLine();
                     if (string.IsNullOrEmpty(chosenMethod)) return;
 
@@ -491,22 +495,23 @@ namespace WebShop
             {
                 Console.WriteLine($"{category.Id,-6} {category.Name,-20}");
             }
-            Console.WriteLine("[E] to edit name | [D] to delete | [X] to exit | [P] to view category products");
+
             int id;
             Console.Write("Enter Id: ");
             var stringId = Console.ReadLine();
             if (string.IsNullOrEmpty(stringId)) return;
 
-
+            Console.WriteLine("[E] to edit name | [D] to delete | [X] to exit | [P] to view category products");
             while (int.TryParse(stringId, out id))
             {
+
                 var k = Console.ReadKey(true);
                 switch (k.Key)
                 {
                     case ConsoleKey.E:
                         Console.Write("Enter new name: ");
                         var newName = Console.ReadLine();
-                        if (string.IsNullOrEmpty(newName)) return;
+                        if (string.IsNullOrEmpty(newName)) continue;
 
                         await _WebShop.ProductManager.UpdateCategory(id, newName);
                         continue;
@@ -514,10 +519,10 @@ namespace WebShop
                         await _WebShop.ProductManager.DeleteCategory(id);
                         continue;
                     case ConsoleKey.P:
-
                         await DisplayCategoryProducts(id);
-
                         continue;
+                    case ConsoleKey.X:
+                        return;
                 }
             }
         }
@@ -544,10 +549,13 @@ namespace WebShop
             if (product == null) return;
 
             Console.WriteLine("\n[N] Edit Name | [P] Edit Price | [D] Edit Description | [F] Toggle Featured | [X] Exit");
+            Console.WriteLine("[C]Add category | [R] Remove category");
             string? newName = null;
             decimal? newPrice = null;
             bool? isFeatured = null;
             string? newDescription = null;
+            string? newCategory = null;
+            string? removeCategory = null;
 
             while (true)
             {
@@ -559,28 +567,34 @@ namespace WebShop
                         Console.Write("Enter new name: ");
                         newName = Console.ReadLine();
                         break;
-
                     case ConsoleKey.P:
                         Console.Write("Enter new price: ");
                         if (decimal.TryParse(Console.ReadLine(), out var price))
                             newPrice = price;
                         break;
-
                     case ConsoleKey.D:
                         Console.Write("Enter new description: ");
                         newDescription = Console.ReadLine();
                         break;
-
                     case ConsoleKey.F:
                         isFeatured = !product.IsFeatured;
                         Console.WriteLine($"Featured status set to {isFeatured.Value}");
                         break;
-
-
+                    case ConsoleKey.C:
+                        Console.WriteLine();
+                        Console.WriteLine("Enter category: ");
+                        newCategory = Console.ReadLine();
+                        break;
+                    case ConsoleKey.R:
+                        Console.WriteLine();
+                        Console.WriteLine("Enter category: ");
+                        removeCategory = Console.ReadLine();
+                        break;
                     case ConsoleKey.X:
                         // Apply all changes at once
-                        if (newName == null && newPrice == null && isFeatured == null && newDescription == null) return;
+                        if (string.IsNullOrEmpty(newName) && newPrice == null && isFeatured == null && string.IsNullOrEmpty(newDescription) && string.IsNullOrEmpty(newCategory) && string.IsNullOrEmpty(removeCategory)) return;
                         await _WebShop.ProductManager.UpdateProduct(id, newName, newPrice, isFeatured, newDescription);
+                        await _WebShop.ProductManager.RemoveCategoryFromProduct(id, removeCategory);
                         return;
                 }
             }
@@ -623,28 +637,27 @@ namespace WebShop
                 return -1;
             }
 
-            Console.BackgroundColor = ConsoleColor.White;
-            Console.ForegroundColor = ConsoleColor.Black;
+            ChangeConsoleColors(foreground: ConsoleColor.Black, background: ConsoleColor.White);
             if (isAdmin)
-                Console.WriteLine($"{"ID",-6}{"Name",-35}{"Categories",-35}{"Price",-7}{"Copies sold",-20}");
+                Console.WriteLine($"{"ID",-6}{"Name",-35}{"Categories",-35}{"Price",-20}{"Copies_sold",-20}");
             else
-                Console.WriteLine($"{"ID",-6}{"Name",-35}{"Categories",-35}{"Price",-7}");
-            Console.WriteLine(new string('-', 103)); // A line to separate headers from the data
+                Console.WriteLine($"{"ID",-6}{"Name",-35}{"Categories",-35}{"Price",-20}");
+            Console.WriteLine(new string('-', 116)); // A line to separate headers from the data
             Console.ResetColor();
 
             // Display products
             foreach (var p in products)
             {
                 if (isAdmin)
-                    Console.WriteLine($"{p.Id,-6} {p.Name,-35} {string.Join(',', p.Categories.Select(c => c.Name)),-35} {p.Price,-7} {p.SoldCount,-15}");
+                    Console.WriteLine($"{p.Id,-6}{p.Name,-35}{string.Join(',', p.Categories.Select(c => c.Name)),-35}{p.Price,-20}{p.SoldCount,7}");
                 else
-                    Console.WriteLine($"{p.Id,-6} {p.Name,-35} {string.Join(',', p.Categories.Select(c => c.Name)),-35} {p.Price,-7}");
+                    Console.WriteLine($"{p.Id,-6}{p.Name,-35}{string.Join(',', p.Categories.Select(c => c.Name)),-35}{p.Price,-20}");
 
             }
 
             if (!skipUserInput)
             {
-                GetProductIdFromUser();
+                return await GetProductIdFromUser();
             }
             return -1;
         }
@@ -660,6 +673,21 @@ namespace WebShop
             if (!int.TryParse(productIdString, out productId)) return -1;
 
             return productId;
+        }
+        private static async Task DisplayLogo()
+        {
+            Console.SetCursorPosition(100, 0);
+            Console.WriteLine(@"
+                                     __     ______  _    _   _      ____   _____  _     _____ ____  
+                                     \ \   / / __ \| |  | | | |    / __ \ / ____|| |   |  __ \___ \ 
+                                      \ \_/ / |  | | |  | | | |   | |  | | (___  | |   | |__) |__) |
+                                       \   /| |  | | |  | | | |   | |  | |\___ \ | |   |  ___/|__ < 
+                                        | | | |__| | |__| | | |___| |__| |____) || |___| |    ___) |
+                                        |_|  \____/ \____/  |______\____/|_____/ |_____|_|   |____/ 
+                                                               
+                                                          Your Local Game Shop
+                                                                                                ");
+
         }
 
         private async Task AddCategory()
@@ -785,8 +813,10 @@ namespace WebShop
 
         }
 
+        private CancellationTokenSource cts = new CancellationTokenSource();
         public async Task UserInput()
         {
+
             var k = Console.ReadKey(true);
             switch (k.Key)
             {
@@ -794,7 +824,8 @@ namespace WebShop
                     await SignUp();
                     break;
                 case ConsoleKey.L:
-                    await LogIn();
+
+                    await LoadingUI(cts.Token, await LogIn());
                     break;
                 default:
 
@@ -804,30 +835,63 @@ namespace WebShop
 
                     break;
             }
+
+
         }
 
-        private async Task LogIn()
+        private async Task<bool> LogIn()
         {
             Console.WriteLine("Please log In");
             var email = GetEmail();
-            if (email == null) return;
+            if (email == null) return false;
 
             var hashedPassword = GetPasswordHash();
-            if (hashedPassword == null) return;
+            if (hashedPassword == null) return false;
 
             var user = await _WebShop.UserManager.LogInUser(new LogInModel
             {
                 Email = email,
                 Password = hashedPassword
             });
+
+
+
             if (user != null)
             {
                 _currentUser = user;
                 _IsLoggedIn = true;
+                return true;
             }
+            return false;
 
             // Console.ReadLine();
         }
+
+        private static async Task LoadingUI(CancellationToken cancellationToken, bool loginTrial)
+        {
+            var animationLength = 0;
+
+            Console.Write("Loading");
+            while (!cancellationToken.IsCancellationRequested && loginTrial)
+            {
+                Console.Write(".");
+                animationLength++;
+                await Task.Delay(200, cancellationToken); // Use cancellation token for Task.Delay
+
+                if (animationLength % 3 == 0) // Cycle every three dots
+                {
+                    Console.Write("\b\b\b   \b\b\b"); // Erase the dots for a smoother animation
+                    animationLength = 0; // Reset counter
+                }
+            }
+
+            // Clear the animation line completely when stopping
+            Console.Write("\r" + new string(' ', "Loading...".Length) + "\r");
+        }
+
+
+
+
 
         private async Task SignUp()
         {
@@ -843,9 +907,6 @@ namespace WebShop
 
                 var (firstName, lastName) = GetName();
                 if (firstName == null || lastName == null) throw new Exception("Name was null");
-
-                var address = GetAddress();
-                if (address == null) throw new Exception("Adress was null");
 
                 var phone = GetPhoneNumber();
                 if (phone == null) throw new Exception("Phone number was null");
@@ -888,30 +949,29 @@ namespace WebShop
             Console.WriteLine("Type exit to exit ");
             Console.Write("Enter your email: ");
             var cursor = Console.GetCursorPosition();
-            while (true)
+
+
+
+
+            Console.SetCursorPosition(18, cursor.Top);
+            Console.Write(new String(' ', 35));
+            Console.SetCursorPosition(18, cursor.Top);
+            var email = Console.ReadLine();
+            if (!string.IsNullOrWhiteSpace(email) && email.Contains('@'))
             {
-
-
-
-                Console.SetCursorPosition(18, cursor.Top);
-                Console.Write(new String(' ', 35));
-                Console.SetCursorPosition(18, cursor.Top);
-                var email = Console.ReadLine();
-                if (!string.IsNullOrWhiteSpace(email) && email.Contains('@'))
-                {
-                    return email;
-                }
-                if (email.ToLower() == "exit")
-                {
-                    Console.WriteLine("Exiting....             ");
-                    Thread.Sleep(800);
-                    Console.WriteLine("Press enter to contine");
-                    Console.ReadLine();
-                    Console.Clear();
-                    return null;
-                }
-                Console.WriteLine("Invalid email.");
+                return email;
             }
+            if (email.ToLower() == "exit")
+            {
+                Console.WriteLine("Exiting....             ");
+                Thread.Sleep(800);
+                Console.WriteLine("Press enter to contine");
+                Console.ReadLine();
+                Console.Clear();
+                return null;
+            }
+            return null;
+
 
         }
 
@@ -924,6 +984,15 @@ namespace WebShop
             {
                 var hashedPassword = Helpers.HashPassword(password);
                 return hashedPassword;
+            }
+            if (password.ToLower() == "exit")
+            {
+                Console.WriteLine("Exiting....             ");
+                Thread.Sleep(800);
+                Console.WriteLine("Press enter to contine");
+                Console.ReadLine();
+                Console.Clear();
+                return null;
             }
             Console.WriteLine("Password must be at least 6 characters long. Press Enter to continue");
             Console.WriteLine();
@@ -939,21 +1008,9 @@ namespace WebShop
                 var parts = name.Split(' ');
                 return (parts[0], parts[1]);
             }
-            Console.WriteLine("Invalid name.");
             return (null, null);
         }
 
-        private string? GetAddress()
-        {
-            Console.Write("Enter your address: ");
-            var address = Console.ReadLine();
-            if (!string.IsNullOrWhiteSpace(address) && address.Length > 5)
-            {
-                return address;
-            }
-            Console.WriteLine("Invalid address.");
-            return null;
-        }
 
         private string? GetPhoneNumber()
         {
@@ -963,7 +1020,6 @@ namespace WebShop
             {
                 return phone;
             }
-            Console.WriteLine("Invalid phone number.");
             return null;
         }
 
@@ -973,11 +1029,11 @@ namespace WebShop
             Console.WriteLine("[Admin] or [Customer]");
             Console.Write("Enter your role: ");
             var role = Console.ReadLine();
-            if (role != "Admin" || role != "Customer")
+            role.ToLower();
+            if (role != "admin" || role != "customer")
             {
                 return role;
             }
-            Console.WriteLine("Invalid role.");
             return null;
         }
 
@@ -997,8 +1053,15 @@ namespace WebShop
                     var results = await Task.Run(() =>
                     {
                         return products
-                            .Where(p => p.Name.Trim().Contains(search.Trim(), StringComparison.OrdinalIgnoreCase))
-                            .ToList();
+                                            .Where(p => p.Description
+                                                        .Contains(search, StringComparison.OrdinalIgnoreCase)
+                                                        || p.Categories.Any(c => c.Name.Contains(search, StringComparison.OrdinalIgnoreCase))
+                                                        || search.All(s => p.Name.Contains(s, StringComparison.OrdinalIgnoreCase))
+                                                   )
+
+                                                .ToList();
+
+
                     }, cts.Token);
 
                     Console.Clear();

@@ -121,7 +121,7 @@ namespace WebShop.Managers
                 return null;
             }
 
-            if (userFromDb.Role == "Admin")
+            if (userFromDb.Role.ToLower() == "admin")
             {
                 Console.WriteLine("Welcome Admin");
                 await Logger.AddLog(userFromDb, "Successfull login");

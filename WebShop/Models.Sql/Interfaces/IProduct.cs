@@ -8,6 +8,6 @@
         public decimal Price { get; set; }
 
         public bool IsDeleted { get; set; }
-        public ICollection<Category> Categories { get; set; }
+        public List<Category> Categories { get; set; }
     }
 }

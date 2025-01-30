@@ -21,7 +21,7 @@ namespace WebShop.DTOs
 
         public bool IsDeleted { get; set; }
         [NotMapped]
-        public ICollection<Category> Categories { get; set; }
+        public List<Category> Categories { get; set; }
         public int SoldCount { get; set; }
         public string Country { get; set; }
 

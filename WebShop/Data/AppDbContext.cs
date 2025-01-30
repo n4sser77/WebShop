@@ -22,7 +22,9 @@ namespace WebShop.Data
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             optionsBuilder
-                .UseSqlServer("Server=NassorisAspire\\SQLEXPRESS;Database=Webshop2;Trusted_Connection=True;TrustServerCertificate=True;Integrated Security=True");
+                .EnableSensitiveDataLogging()
+            .UseSqlServer(@"Server=tcp:nassori.database.windows.net,1433;Initial Catalog=MyWebShopDB;Persist Security Info=False;User ID=CloudSA5d87953d;Password=Anders123;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;");
+            //.UseSqlServer("Server=NassorisAspire\\SQLEXPRESS;Database=Webshop2;Trusted_Connection=True;TrustServerCertificate=True;Integrated Security=True");
             //.EnableSensitiveDataLogging(false) // Enables detailed error messages
             //.LogTo(Console.WriteLine);    // Logs queries and errors to the console
         }

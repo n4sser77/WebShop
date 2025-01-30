@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.EntityFrameworkCore;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -17,7 +18,7 @@ namespace WebShop
             {
                 var faker = new Bogus.Faker("en");
 
-                var users = Enumerable.Range(1, 50).Select(_ => new User
+                var users = Enumerable.Range(1, 100).Select(_ => new User
                 {
                     Email = faker.Internet.Email(),
                     FirstName = faker.Name.FirstName(),
@@ -59,10 +60,10 @@ namespace WebShop
                     return;
                 }
 
-                var orders = Enumerable.Range(1, 100).Select(_ =>
+                var orders = Enumerable.Range(1, 10).Select(_ =>
                 {
 
-                    var randomUser = faker.PickRandom(users);
+                    var randomUser = faker.PickRandom(users.Where(u => u.Country != null && u.City != null && u.PostalCode != null));
 
 
                     var randomProducts = faker.PickRandom(products, faker.Random.Int(1, 5)).ToList();
@@ -76,7 +77,7 @@ namespace WebShop
                         PaymentMethod = faker.PickRandom(new[] { "Invoice", "PayPal" }),
                         Total = randomProducts.Sum(p => p.Price), // Assuming Product has a Price property
                         Products = randomProducts,
-                        
+
                     };
                 }).ToList();
 
@@ -103,13 +104,23 @@ namespace WebShop
 
                 // Ensure the required categories exist
                 var categoryNames = new[] { "Survivor horror", "Open world", "RPG", "Shooter" };
+                List<Category> categorieList = new List<Category>()
+                {
+                    new Category { Name = "Survivor horror" },
+                    new Category { Name = "Open world" },
+                    new Category { Name = "RPG" },
+                    new Category { Name = "Shooter" }
+                };
                 var categories = db.Categories
                     .Where(c => categoryNames.Contains(c.Name))
                     .ToList();
 
                 if (categories.Count != categoryNames.Length)
                 {
-                    throw new Exception("Some required categories are missing in the database. Please add them first.");
+                    // throw new Exception("Some required categories are missing in the database. Please add them first.");
+                    await db.Categories.AddRangeAsync(categorieList);
+                    categories = await db.Categories.Where(c => categoryNames.Contains(c.Name)).ToListAsync();
+                    await db.SaveChangesAsync();
                 }
 
                 // Map category names to their objects for easy lookup
