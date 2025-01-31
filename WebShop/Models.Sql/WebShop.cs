@@ -8,15 +8,15 @@ using WebShop.Models.Interfaces;
 
 namespace WebShop.Models
 {
-    public class WebShop(IWebSHopSettings settings, ProductManager productManager, UserManager userManager, CartManager cartManager, OrderManager orderManager)
+    public class WebShop(IWebSHopSettings settings, IProductManager productManager, IUserManager userManager, ICartManager cartManager, IOrderManager orderManager)
     {
         public int Id { get; set; }
         public IWebSHopSettings Settings { get; set; } = settings;
         public string ShopName { get; set; } = settings.ShopName;
-        public ProductManager ProductManager { get; set; } = productManager;
-        public UserManager UserManager { get; set; } = userManager;
-        public CartManager CartManager { get; set; } = cartManager;
+        public IProductManager ProductManager { get; set; } = productManager;
+        public IUserManager UserManager { get; set; } = userManager;
+        public ICartManager CartManager { get; set; } = cartManager;
 
-        public OrderManager OrderManager { get; set; } = orderManager;
+        public IOrderManager OrderManager { get; set; } = orderManager;
     }
 }

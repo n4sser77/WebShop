@@ -34,8 +34,8 @@ namespace WebShop.Models.MongoDb
             }
             catch (Exception e)
             {
-                Console.WriteLine(e.Message);
-                throw;
+                
+                
             }
         }
 

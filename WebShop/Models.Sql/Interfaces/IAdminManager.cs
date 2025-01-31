@@ -1,4 +1,6 @@
-﻿namespace WebShop.Models.Interfaces
+﻿using WebShop.Data;
+
+namespace WebShop.Models.Interfaces
 {
     public interface IAdminManager
     {
@@ -8,3 +10,4 @@
 
     }
 }
+

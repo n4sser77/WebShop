@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace WebShop
 {
-    internal class Helpers
+    internal class InputHelper
     {
 
         public static string ReadKeysPassword()

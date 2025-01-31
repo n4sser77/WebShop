@@ -6,9 +6,16 @@ using System.Text;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 using WebShop.Data;
+using WebShop;
+
+
 using WebShop.Managers;
 using WebShop.Models;
+using WebShop.Models.Interfaces;
+using WebShop.Models.Sql.Interfaces;
 using WindowGUI;
+
+
 
 
 namespace WebShop
@@ -19,14 +26,16 @@ namespace WebShop
         private Models.WebShop _WebShop { get; set; }
         private bool _IsLoggedIn { get; set; } = false;
         private User? _currentUser { get; set; }
-        private bool isInDev = true;
-
+        private bool isInDev = false;
+        private CancellationTokenSource cts = new CancellationTokenSource();
+        private IUserRoleHandler _currentRoleHandler { get; set; }
         public Shop(string shopName)
         {
-            CartManager CartManager = new CartManager();
-            ProductManager ProductManager = new ProductManager();
-            OrderManager OrderManager = new OrderManager();
-            UserManager UserManager = new UserManager();
+            ICartManager CartManager = new CartManager();
+            IProductManager ProductManager = new ProductManager();
+            IOrderManager OrderManager = new OrderManager();
+            IUserManager UserManager = new UserManager();
+
             WebShopSettings Settings = new WebShopSettings
             {
                 ShopName = shopName
@@ -38,6 +47,7 @@ namespace WebShop
 
         public async Task Run()
         {
+            Console.Clear();
             if (isInDev)
             {
                 using var db = new AppDbContext();
@@ -80,7 +90,8 @@ namespace WebShop
 
                             foreach (var c in popularCategories)
                             {
-                                ChangeConsoleColors(ConsoleColor.Red, ConsoleColor.Gray);
+
+                                UiHelper.ChangeConsoleColors(ConsoleColor.Red, ConsoleColor.Gray);
                                 Console.WriteLine($"{c.Id,-6}{c.Name,-25}");
                                 Console.ResetColor();
                                 await DisplayProducts(c.Products.ToList(), isAdmin: true, skipUserInput: true);
@@ -238,11 +249,6 @@ namespace WebShop
 
         }
 
-        private static void ChangeConsoleColors(ConsoleColor foreground, ConsoleColor background)
-        {
-            Console.ForegroundColor = foreground;
-            Console.BackgroundColor = background;
-        }
 
         private async Task DisplayPopularProductsInCity()
         {
@@ -262,7 +268,7 @@ namespace WebShop
             // Display the products grouped by country
             foreach (var countryGroup in groupedByCountry)
             {
-                ChangeConsoleColors(foreground: ConsoleColor.Black, background: ConsoleColor.White);
+                UiHelper.ChangeConsoleColors(foreground: ConsoleColor.Black, background: ConsoleColor.White);
                 Console.WriteLine();
                 Console.WriteLine($"Country: {countryGroup.Key}");
                 Console.WriteLine($"{"Id",-6}{"Name",-30}{"Copies sold",-10}");
@@ -274,6 +280,7 @@ namespace WebShop
                 }
             }
         }
+
 
 
         private async Task ViewOrderHistory()
@@ -308,7 +315,7 @@ namespace WebShop
         private async Task RenderCartMode()
         {
             Console.Clear();
-            ChangeConsoleColors(ConsoleColor.Black, ConsoleColor.White);
+            UiHelper.ChangeConsoleColors(ConsoleColor.Black, ConsoleColor.White);
             Console.WriteLine("[C] to Checkout");
             Console.ResetColor();
             Console.WriteLine("--Cart------------------------------------------------------------------------------------------------------------------");
@@ -593,7 +600,7 @@ namespace WebShop
                     case ConsoleKey.X:
                         // Apply all changes at once
                         if (string.IsNullOrEmpty(newName) && newPrice == null && isFeatured == null && string.IsNullOrEmpty(newDescription) && string.IsNullOrEmpty(newCategory) && string.IsNullOrEmpty(removeCategory)) return;
-                        await _WebShop.ProductManager.UpdateProduct(id, newName, newPrice, isFeatured, newDescription);
+                        await _WebShop.ProductManager.UpdateProduct(id, newName, newPrice, isFeatured, newDescription, newCategory);
                         await _WebShop.ProductManager.RemoveCategoryFromProduct(id, removeCategory);
                         return;
                 }
@@ -637,7 +644,7 @@ namespace WebShop
                 return -1;
             }
 
-            ChangeConsoleColors(foreground: ConsoleColor.Black, background: ConsoleColor.White);
+            UiHelper.ChangeConsoleColors(foreground: ConsoleColor.Black, background: ConsoleColor.White);
             if (isAdmin)
                 Console.WriteLine($"{"ID",-6}{"Name",-35}{"Categories",-35}{"Price",-20}{"Copies_sold",-20}");
             else
@@ -813,7 +820,6 @@ namespace WebShop
 
         }
 
-        private CancellationTokenSource cts = new CancellationTokenSource();
         public async Task UserInput()
         {
 
@@ -825,7 +831,7 @@ namespace WebShop
                     break;
                 case ConsoleKey.L:
 
-                    await LoadingUI(cts.Token, await LogIn());
+                     await LogIn();
                     break;
                 default:
 
@@ -867,27 +873,7 @@ namespace WebShop
             // Console.ReadLine();
         }
 
-        private static async Task LoadingUI(CancellationToken cancellationToken, bool loginTrial)
-        {
-            var animationLength = 0;
 
-            Console.Write("Loading");
-            while (!cancellationToken.IsCancellationRequested && loginTrial)
-            {
-                Console.Write(".");
-                animationLength++;
-                await Task.Delay(200, cancellationToken); // Use cancellation token for Task.Delay
-
-                if (animationLength % 3 == 0) // Cycle every three dots
-                {
-                    Console.Write("\b\b\b   \b\b\b"); // Erase the dots for a smoother animation
-                    animationLength = 0; // Reset counter
-                }
-            }
-
-            // Clear the animation line completely when stopping
-            Console.Write("\r" + new string(' ', "Loading...".Length) + "\r");
-        }
 
 
 
@@ -979,10 +965,10 @@ namespace WebShop
         {
 
             Console.Write("Enter your password: ");
-            var password = Helpers.ReadKeysPassword(); ;
+            var password = InputHelper.ReadKeysPassword(); ;
             if (!string.IsNullOrWhiteSpace(password) && password.Length > 5)
             {
-                var hashedPassword = Helpers.HashPassword(password);
+                var hashedPassword = InputHelper.HashPassword(password);
                 return hashedPassword;
             }
             if (password.ToLower() == "exit")
@@ -1043,7 +1029,7 @@ namespace WebShop
             var products = await _WebShop.ProductManager.ProductsToList();
             var cts = new CancellationTokenSource();
 
-            await foreach (var search in Helpers.ReadKeysSearchAsync())
+            await foreach (var search in InputHelper.ReadKeysSearchAsync())
             {
                 cts.Cancel(); // Cancel the previous search
                 cts = new CancellationTokenSource(); // Create a new token

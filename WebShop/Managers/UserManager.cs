@@ -6,7 +6,7 @@ using WebShop.Models.MongoDb;
 
 namespace WebShop.Managers
 {
-    public class UserManager : IAdminManager
+    public class UserManager : IUserManager, IAdminManager
     {
 
         public async Task<List<User>> GetUsers()
