@@ -1,3 +1,0 @@
-| CategoryID | Name       |
-| ---------- | ---------- |
-| PK         | Nvarchar() |
